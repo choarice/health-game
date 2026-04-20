@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>健康知識大挑戰</title>
+    <style>
+        :root {
+            --primary-color: #4CAF50;
+            --secondary-color: #2196F3;
+            --bg-color: #f4f7f6;
+            --card-bg: #ffffff;
+            --text-color: #333;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100-vh;
+            margin: 0;
+            padding: 20px;
+        }
+
+        #app {
+            background-color: var(--card-bg);
+            width: 100%;
+            max-width: 500px;
+            padding: 2rem;
+            border-radius: 15px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+
+        .progress-container {
+            width: 100%;
+            background-color: #e0e0e0;
+            border-radius: 10px;
+            margin-bottom: 20px;
+        }
+
+        .progress-bar {
+            height: 10px;
+            background-color: var(--primary-color);
+            width: 0%;
+            border-radius: 10px;
+            transition: width 0.3s ease;
+        }
+
+        h2 { margin-bottom: 1.5rem; font-size: 1.2rem; }
+
+        .options-container {
+            display: grid;
+            gap: 10px;
+        }
+
+        .option-btn {
+            padding: 12px;
+            border: 2px solid #eee;
+            border-radius: 8px;
+            background: none;
+            cursor: pointer;
+            font-size: 1rem;
+            transition: all 0.2s;
+        }
+
+        .option-btn:hover {
+            border-color: var(--secondary-color);
+            background-color: #e3f2fd;
+        }
+
+        .correct { background-color: #c8e6c9 !important; border-color: #4CAF50 !important; }
+        .wrong { background-color: #ffcdd2 !important; border-color: #f44336 !important; }
+
+        #result-screen { display: none; }
+        .score-text { font-size: 2rem; font-weight: bold; color: var(--primary-color); }
+
+        .hidden { display: none; }
+
+        button#restart-btn {
+            margin-top: 20px;
+            padding: 10px 25px;
+            background-color: var(--secondary-color);
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+
+<div id="app">
+    <div id="quiz-screen">
+        <div class="progress-container">
+            <div id="progress" class="progress-bar"></div>
+        </div>
+        <p id="question-number">問題 1 / 5</p>
+        <h2 id="question-text">載入中...</h2>
+        <div id="options" class="options-container">
+            </div>
+    </div>
+
+    <div id="result-screen">
+        <h2>測試完成！</h2>
+        <p>你的得分是</p>
+        <div class="score-text"><span id="score">0</span> / <span id="total">0</span></div>
+        <p id="feedback-msg"></p>
+        <button id="restart-btn" onclick="resetGame()">重新挑戰</button>
+    </div>
+</div>
+
+<script>
+    const quizData = [
+        {
+            q: "成人每日建議的飲水量（毫升）大約是體重(kg)乘以多少？",
+            options: ["10-20", "30-40", "50-60", "70-80"],
+            correct: 1
+        },
+        {
+            q: "下列哪種維生素與鈣質吸收密切相關？",
+            options: ["維生素 A", "維生素 C", "維生素 D", "維生素 K"],
+            correct: 2
+        },
+        {
+            q: "正常成人的靜止心率範圍通常是多少（次/分）？",
+            options: ["40-60", "60-100", "100-120", "120-140"],
+            correct: 1
+        },
+        {
+            q: "地中海飲食建議攝取哪種油脂作為主要來源？",
+            options: ["豬油", "奶油", "棕櫚油", "橄欖油"],
+            correct: 3
+        },
+        {
+            q: "每週建議的中等強度運動時間至少應為幾分鐘？",
+            options: ["30 分鐘", "60 分鐘", "150 分鐘", "300 分鐘"],
+            correct: 2
+        }
+    ];
+
+    let currentQuestionIndex = 0;
+    let score = 0;
+    let canAnswer = true;
+
+    const questionText = document.getElementById('question-text');
+    const optionsContainer = document.getElementById('options');
+    const progress = document.getElementById('progress');
+    const qNumber = document.getElementById('question-number');
+    const quizScreen = document.getElementById('quiz-screen');
+    const resultScreen = document.getElementById('result-screen');
+
+    function loadQuestion() {
+        canAnswer = true;
+        const currentData = quizData[currentQuestionIndex];
+        
+        // 更新進度
+        const progressPercent = ((currentQuestionIndex) / quizData.length) * 100;
+        progress.style.width = `${progressPercent}%`;
+        qNumber.innerText = `問題 ${currentQuestionIndex + 1} / ${quizData.length}`;
+        
+        // 載入題目
+        questionText.innerText = currentData.q;
+        optionsContainer.innerHTML = '';
+
+        currentData.options.forEach((opt, index) => {
+            const btn = document.createElement('button');
+            btn.classList.add('option-btn');
+            btn.innerText = opt;
+            btn.onclick = () => checkAnswer(index, btn);
+            optionsContainer.appendChild(btn);
+        });
+    }
+
+    function checkAnswer(selectedIndex, clickedBtn) {
+        if (!canAnswer) return;
+        canAnswer = false;
+
+        const correctIndex = quizData[currentQuestionIndex].correct;
+        const buttons = optionsContainer.getElementsByTagName('button');
+
+        if (selectedIndex === correctIndex) {
+            score++;
+            clickedBtn.classList.add('correct');
+        } else {
+            clickedBtn.classList.add('wrong');
+            buttons[correctIndex].classList.add('correct');
+        }
+
+        setTimeout(() => {
+            currentQuestionIndex++;
+            if (currentQuestionIndex < quizData.length) {
+                loadQuestion();
+            } else {
+                showResult();
+            }
+        }, 1200);
+    }
+
+    function showResult() {
+        progress.style.width = '100%';
+        quizScreen.style.display = 'none';
+        resultScreen.style.display = 'block';
+        
+        document.getElementById('score').innerText = score;
+        document.getElementById('total').innerText = quizData.length;
+        
+        let msg = "";
+        if (score === quizData.length) msg = "健康大師！你的知識非常完美。";
+        else if (score >= 3) msg = "表現不錯，繼續保持健康生活！";
+        else msg = "再接再厲，多關注健康資訊喔！";
+        
+        document.getElementById('feedback-msg').innerText = msg;
+    }
+
+    function resetGame() {
+        currentQuestionIndex = 0;
+        score = 0;
+        resultScreen.style.display = 'none';
+        quizScreen.style.display = 'block';
+        loadQuestion();
+    }
+
+    // 初始化啟動
+    loadQuestion();
+</script>
+
+</body>
+</html>
